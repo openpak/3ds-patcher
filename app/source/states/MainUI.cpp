@@ -122,7 +122,7 @@ void MainUI::migrateAccount(MainStruct *mainStruct) {
 
 void MainUI::unlinkPNID(MainStruct *mainStruct) {
     if (R_FAILED(retPNID = ACTA_UnbindServerAccount(pnidAccountSlot, true))) {
-        LOG_NIMBUS_ERROR(mainStruct, "ACTA_UnbindServerAccount failed!");
+        LOG_NIMBUS_ERROR(mainStruct, std::format("ACTA_UnbindServerAccount failed with error code {}!", retPNID).c_str());
 	} else {
 		LOG_NIMBUS_ERROR(mainStruct, "Successfully unlinked PNID!");
 	}
@@ -405,20 +405,19 @@ bool MainUI::drawUI(MainStruct *mainStruct, C3D_RenderTarget* top_screen, C3D_Re
 
         if (kDown & KEY_X) {
             // We need to confirm we actually even have a linked PNID.
-
-            if (R_FAILED(retPNID = actInit(false))) {
-		        LOG_NIMBUS_ERROR(mainStruct, "actInit failed!");
-	        };
-
 	        if (R_SUCCEEDED(retPNID)) {
 		        if (R_FAILED(retPNID = ACT_GetAccountIndexOfFriendAccountId(&pnidAccountSlot, 2))) {
-			        LOG_NIMBUS_ERROR(mainStruct, "ACT_GetAccountIndexOfFriendAccountId failed!");
+			        LOG_NIMBUS_ERROR(mainStruct, std::format("ACT_GetAccountIndexOfFriendAccountId failed with error code {}!", retPNID).c_str());
 		        }
 	        }
 
+            if (pnidAccountSlot == 0) {
+                LOG_NIMBUS_ERROR(mainStruct, "There is no PNID linked on this console!");
+            }
+
 	        if (R_SUCCEEDED(retPNID)) {
 		        if (R_FAILED(retPNID = ACT_GetAccountInfo(pnid, sizeof(pnid), pnidAccountSlot, INFO_TYPE_ACCOUNT_ID))) {
-			        LOG_NIMBUS_ERROR(mainStruct, "ACT_GetAccountInfo failed!");
+			        LOG_NIMBUS_ERROR(mainStruct, std::format("ACT_GetAccountInfo failed with error code {}!", retPNID).c_str());
 		        }
 	        }
 
