@@ -35,6 +35,24 @@ const int targetLumaVersion = 13;
 const int GetSystemInfoCFW = 0x10000; // the type for Luma3DS' GetSystemInfo hook that returns CFW info
 const u32 defaultColor = C2D_Color32(255, 255, 255, 0xFF);
 
+enum class PromptResult {
+    None,
+    Yes,
+    No
+};
+
+enum class PromptStatus {
+	Unknown,
+    PNIDUnlink
+};
+
+struct PromptState {
+    bool active = false;
+    std::string message;
+    PromptResult result = PromptResult::None;
+	PromptStatus status = PromptStatus::Unknown;
+};
+
 struct MainStruct {
 	C2D_Sprite debug_button;
 	C2D_Sprite debug_header;
@@ -75,6 +93,8 @@ struct MainStruct {
 	s64 lumaOptions;
 	bool gamePatchingEnabled;
 	bool externalFirmsAndModulesEnabled;
+
+	PromptState prompt;
 };
 
 #define LOG_NIMBUS_ERROR(mainStruct, fmt) \

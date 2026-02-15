@@ -1,4 +1,5 @@
 #include <format>
+#include <3ds.h>
 #include <sys/stat.h>
 #include "MainUI.hpp"
 #include "../sysmodules/acta.hpp"
@@ -8,6 +9,10 @@ constexpr Result ResultFPDLocalAccountNotExists = 0xC880C4ED; // FPD::LocalAccou
 const char *NIMBUS_PLUGIN = "/luma/plugins/nimbus.3gx";
 const char *NIMBUS_PLUGIN_MAGIC = "NMBS";
 constexpr u32 NIMBUS_PLUGIN_VERSION = SYSTEM_VERSION(1, 0, 0);
+
+Result retPNID = 0;
+u32 pnidAccountSlot = 0;
+AccountId pnid = {};
 
 Result MainUI::unloadAccount(MainStruct *mainStruct) {
     Result rc = 0;
@@ -115,6 +120,14 @@ void MainUI::migrateAccount(MainStruct *mainStruct) {
     }
 }
 
+void MainUI::unlinkPNID(MainStruct *mainStruct) {
+    if (R_FAILED(retPNID = ACTA_UnbindServerAccount(pnidAccountSlot, true))) {
+        LOG_NIMBUS_ERROR(mainStruct, std::format("ACTA_UnbindServerAccount failed with error code {}!", retPNID).c_str());
+	} else {
+		LOG_NIMBUS_ERROR(mainStruct, "Successfully unlinked PNID!");
+	}
+}
+
 // Borrowed from https://github.com/azahar-emu/ArticBaseServer/blob/d93be050a4787ed602c603aa14bbaaee066dc1d9/app/sources/main.cpp#L79
 void MainUI::launchPlugin(MainStruct *mainStruct) {
     Result rc = 0;
@@ -178,6 +191,75 @@ void MainUI::launchPlugin(MainStruct *mainStruct) {
     return;
 }
 
+void MainUI::openPrompt(MainStruct* mainStruct, const std::string& message, PromptStatus promptStatus)
+{
+    mainStruct->prompt.active = true;
+    mainStruct->prompt.message = message;
+    mainStruct->prompt.result = PromptResult::None;
+    mainStruct->prompt.status = promptStatus;
+}
+
+void MainUI::updatePrompt(MainStruct* mainStruct, u32 kDown)
+{
+    if (!mainStruct->prompt.active)
+        return;
+
+    if (kDown & KEY_A) {
+        mainStruct->prompt.result = PromptResult::Yes;
+    }
+    else if (kDown & KEY_B) {
+        mainStruct->prompt.result = PromptResult::No;
+    }
+}
+
+void MainUI::drawPrompt(MainStruct* mainStruct)
+{
+    if (!mainStruct->prompt.active) return;
+
+    const float screenW = 320.0f;
+    const float screenH = 240.0f;
+
+    // Dim background
+    C2D_DrawRectSolid(0, 0, 0.1f, screenW, screenH, C2D_Color32(0, 0, 0, 140));
+
+    const float boxW = 280.0f, boxH = 110.0f;
+    const float boxX = (screenW - boxW) / 2.0f;
+    const float boxY = (screenH - boxH) / 2.0f;
+
+    const u32 fill   = C2D_Color32(25, 25, 25, 240);
+    const u32 border = C2D_Color32(255, 255, 255, 255);
+    const u32 white  = C2D_Color32(255, 255, 255, 255);
+
+    // Box + border
+    C2D_DrawRectSolid(boxX, boxY, 0.2f, boxW, boxH, fill);
+    C2D_DrawRectSolid(boxX, boxY,               0.3f, boxW, 2, border);
+    C2D_DrawRectSolid(boxX, boxY + boxH - 2.0f, 0.3f, boxW, 2, border);
+    C2D_DrawRectSolid(boxX, boxY,               0.3f, 2, boxH, border);
+    C2D_DrawRectSolid(boxX + boxW - 2.0f, boxY, 0.3f, 2, boxH, border);
+
+    // Parse both strings in one buffer
+    C2D_Text msgText, hintText;
+    C2D_TextBufClear(textBuf);
+
+    C2D_TextFontParse(&msgText, font, textBuf, mainStruct->prompt.message.c_str());
+    C2D_TextOptimize(&msgText);
+
+    C2D_TextFontParse(&hintText, font, textBuf, "A: Yes    B: Cancel");
+    C2D_TextOptimize(&hintText);
+
+    // Draw (z <= 1.0!!)
+    C2D_DrawText(&msgText,
+                 C2D_WithColor | C2D_WordWrap,
+                 boxX + 10.0f, boxY + 10.0f, 0.4f,
+                 0.55f, 0.55f, white,
+                 boxW - 20.0f);
+
+    C2D_DrawText(&hintText,
+                 C2D_WithColor | C2D_AlignCenter,
+                 screenW / 2.0f, boxY + boxH - 18.0f, 0.4f,
+                 0.5f, 0.5f, white);
+}
+
 bool MainUI::drawUI(MainStruct *mainStruct, C3D_RenderTarget* top_screen, C3D_RenderTarget* bottom_screen, u32 kDown, u32 kHeld, touchPosition touch)
 {
     // Check if Nimbus has been updated
@@ -239,6 +321,29 @@ bool MainUI::drawUI(MainStruct *mainStruct, C3D_RenderTarget* top_screen, C3D_Re
     // if start is pressed, exit to hbl/the home menu depending on if the app was launched from cia or 3dsx
     if (kDown & KEY_START) return true;
 
+    updatePrompt(mainStruct, kDown);
+
+    if (mainStruct->prompt.active) {
+        if (mainStruct->prompt.result == PromptResult::Yes) {
+            switch (mainStruct->prompt.status) {
+                case PromptStatus::PNIDUnlink:
+                    unlinkPNID(mainStruct);
+                    break;
+                default:
+                    LOG_NIMBUS_ERROR(mainStruct, "Unknown prompt called.");
+                    break;
+            }
+            mainStruct->prompt.result = PromptResult::None;
+            mainStruct->prompt.active = false;
+            return false;
+        }
+        if (mainStruct->prompt.result == PromptResult::No) {
+            mainStruct->prompt.result = PromptResult::None;
+            mainStruct->prompt.active = false;
+            return false;
+        }
+    }
+
     C2D_SceneBegin(top_screen);
     DrawVersionString();
     C2D_DrawSprite(&mainStruct->top);
@@ -271,9 +376,10 @@ bool MainUI::drawUI(MainStruct *mainStruct, C3D_RenderTarget* top_screen, C3D_Re
         }
     }
     C2D_DrawSprite(&mainStruct->header);
+    drawPrompt(mainStruct);
 
     // Only allow user interaction when the system doesn't need a restart
-    if (!mainStruct->needsReboot) {
+    if (!mainStruct->needsReboot && !mainStruct->prompt.active) {
         // handle touch input
         if (kDown & KEY_TOUCH) {
             if ((touch.px >= 165 && touch.px <= 165 + 104) && (touch.py >= 59 && touch.py <= 59 + 113)) {
@@ -289,8 +395,39 @@ bool MainUI::drawUI(MainStruct *mainStruct, C3D_RenderTarget* top_screen, C3D_Re
             mainStruct->buttonSelected = mainStruct->buttonSelected == NascEnvironment::NASC_ENV_Test ? NascEnvironment::NASC_ENV_Prod : NascEnvironment::NASC_ENV_Test;
         }
 
+        if (mainStruct->prompt.active) {
+            return false;
+        }
+
         if (kDown & KEY_A) {
             mainStruct->buttonWasPressed = true;
+        }
+
+        if (kDown & KEY_X) {
+            // We need to confirm we actually even have a linked PNID.
+	        if (R_SUCCEEDED(retPNID)) {
+		        if (R_FAILED(retPNID = ACT_GetAccountIndexOfFriendAccountId(&pnidAccountSlot, 2))) {
+			        LOG_NIMBUS_ERROR(mainStruct, std::format("ACT_GetAccountIndexOfFriendAccountId failed with error code {}!", retPNID).c_str());
+		        }
+	        }
+
+            if (pnidAccountSlot == 0) {
+                LOG_NIMBUS_ERROR(mainStruct, "There is no PNID linked on this console!");
+            }
+
+	        if (R_SUCCEEDED(retPNID)) {
+		        if (R_FAILED(retPNID = ACT_GetAccountInfo(pnid, sizeof(pnid), pnidAccountSlot, INFO_TYPE_ACCOUNT_ID))) {
+			        LOG_NIMBUS_ERROR(mainStruct, std::format("ACT_GetAccountInfo failed with error code {}!", retPNID).c_str());
+		        }
+	        }
+
+            if (R_SUCCEEDED(retPNID)) {
+		        if (pnid[0] != '\0') {
+			        openPrompt(mainStruct, std::format("Are you sure you would like to unlink your PNID {}? Your PNID can be relinked at any time.", pnid), PromptStatus::PNIDUnlink);
+		        } else {
+			        LOG_NIMBUS_ERROR(mainStruct, "There is no PNID linked on this console!");
+		        }
+	        }
         }
 
         if (kDown & KEY_Y) {
