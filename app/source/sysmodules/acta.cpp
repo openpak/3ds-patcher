@@ -1,7 +1,7 @@
 #include "acta.hpp"
 
 Result ACT_GetFriendLocalAccountId(u8 *out, u32 index) {
-	return ACT_GetAccountInfo(out, sizeof(u32), index, INFO_TYPE_FP_LOCAL_ACCOUNT_ID);
+	return ACT_GetAccountInfo(out, sizeof(u8), index, INFO_TYPE_FP_LOCAL_ACCOUNT_ID);
 }
 
 Result ACT_GetPersistentId(u32 *out, u32 index) {
