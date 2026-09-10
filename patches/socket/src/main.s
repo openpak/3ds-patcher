@@ -64,21 +64,35 @@ start_replacements_addr equ 0x131088
 		ldr   r1, =nncs1_orig_name
 		bl    strcmp                   ; compare hostname with nncs1
 		cmp   r0, #0
-		ldreq r0, =nncs1_pretendo_name ; if it matches, return the pretendo domain and its size
-		moveq r1, #21                  ; size of pretendo domain
+		ldreq r0, =openpak_server_ip   ; if it matches, resolve it ourselves: the OpenPak box
+		moveq r1, #14                  ; size of the dotted-quad literal
 		beq   handle_replacements_end
 		mov   r0, r10                  ; move original hostname to r0
 		ldr   r1, =nncs2_orig_name
 		bl    strcmp                   ; compare hostname with nncs2
 		cmp   r0, #0
-		ldreq r0, =nncs2_pretendo_name ; if it matches, return the pretendo domain and its size
-		moveq r1, #21                  ; size of pretendo domain
-		movne r0, r10                  ; if none of the nncs domains match, use the original hostname
-		movne r1, #0                   ; size of 0 to represent the domain hasn't been modified
-
+		ldreq r0, =openpak_nncs2_ip    ; the second NAT check server lives on its own host
+		moveq r1, #15
+		beq   handle_replacements_end
+		; OpenPak: any *.openpak.org name (the HTTP/act/friends/miiverse patches produce them)
+		; resolves to the OpenPak box here, so the console needs no public DNS record.
+		mov   r0, r10
+		bl    strlen                   ; r0 = len(hostname)
+		cmp   r0, #12                  ; ".openpak.org" is 12 bytes
+		blt   handle_replacements_none
+		add   r0, r10, r0              ; r0 = end of hostname
+		sub   r0, r0, #12              ; r0 = tail of hostname
+		ldr   r1, =openpak_suffix
+		bl    strcmp
+		cmp   r0, #0
+		ldreq r0, =openpak_server_ip
+		moveq r1, #14
+		beq   handle_replacements_end
+	handle_replacements_none:
+		mov   r0, r10                  ; no match: use the original hostname
+		mov   r1, #0                   ; size of 0 to represent the domain hasn't been modified
 	handle_replacements_end:
 		ldmia sp!, {r10, r12, pc}      ; load the original state back and return
-
 ; strings
 	.pool
 
