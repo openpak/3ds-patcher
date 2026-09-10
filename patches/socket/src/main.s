@@ -76,11 +76,15 @@ start_replacements_addr equ 0x131088
 		beq   handle_replacements_end
 		; OpenPak: any *.openpak.org name (the HTTP/act/friends/miiverse patches produce them)
 		; resolves to the OpenPak box here, so the console needs no public DNS record.
-		mov   r0, r10
-		bl    strlen                   ; r0 = len(hostname)
-		cmp   r0, #12                  ; ".openpak.org" is 12 bytes
+		mov   r0, r10                  ; walk to the terminating NUL (no strlen in this module's patch)
+	handle_replacements_len:
+		ldrb  r2, [r0], #1
+		cmp   r2, #0
+		bne   handle_replacements_len
+		sub   r0, r0, #1               ; r0 = end of hostname
+		sub   r2, r0, r10              ; r2 = len(hostname)
+		cmp   r2, #12                  ; ".openpak.org" is 12 bytes
 		blt   handle_replacements_none
-		add   r0, r10, r0              ; r0 = end of hostname
 		sub   r0, r0, #12              ; r0 = tail of hostname
 		ldr   r1, =openpak_suffix
 		bl    strcmp
