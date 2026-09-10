@@ -1,3 +1,13 @@
+# OpenPak nn-nimbus — 3DS patches and account manager for OpenPak
+
+Fork of Pretendo's nimbus. The Luma patches swap `nintendo.net` / `nintendowifi.net` for
+the same-length `openpak.org` in the HTTP, socket (NNCS), account, friends and Miiverse
+modules, and the SSL patch disables root-CA verification, so the console reaches OpenPak's
+servers for those names. Build needs devkitARM, libctru, CTRPluginFramework, 3gxtool, armips,
+makerom, bannertool and flips (see below); not yet built or run on hardware.
+
+---
+
 # Nimbus
 ## Pretendo account manager for the 3DS
 

@@ -123,7 +123,7 @@ Result MainUI::handleAzahar(u8 friend_account_id) {
         {"nintendo\\.net"},
         {"pokemon-gl\\.com"}
     }};
-    const std::string replacement = "pretendo.cc";
+    const std::string replacement = "openpak.org";
 
     Result res = httpcInit(0x1000);
     if (friend_account_id == 2) {
