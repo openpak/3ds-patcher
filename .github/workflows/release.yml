@@ -18,7 +18,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build -f docker/tools.Dockerfile -t builder .
-      - run: docker run --rm -v "$PWD":/src builder bash docker/build-inner.sh
+      - run: docker run --rm -v "$PWD":/src builder bash /src/docker/build-inner.sh
       - name: Collect release files
         run: |
           mkdir release
