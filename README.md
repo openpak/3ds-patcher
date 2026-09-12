@@ -30,9 +30,27 @@ Releases: push an `openpak-v*` tag and CI attaches `nimbus.cia`, `nimbus.3dsx` a
 # Nimbus
 ## Pretendo account manager for the 3DS
 
-## Usage
+Upstream README below. On OpenPak: **the "Pretendo" button is the OpenPak path** — the same
+unofficial-environment selection, pointed at `account.openpak.org` / `nasc.openpak.org` by the
+patches. (The on-screen Pretendo artwork is upstream's; renaming it is cosmetic and has not
+been done.)
 
-1. Grab the latest app and IPS patches from the [Releases](https://github.com/PretendoNetwork/nimbus/releases) page
+## Usage (OpenPak)
+
+1. Grab `nimbus.cia` (or `nimbus.3dsx`) and `nimbus.3gx` from the [Releases](../../releases) page
+2. Copy `3ds/nimbus/` from the release (or your own `out/combined_out/`) to the root of your 3DS SD card
+3. Install `nimbus.cia` with FBI (or FBI Reloaded)
+4. Reboot holding SELECT and ensure "Enable loading external FIRMs and modules" and "Enable game patching" are both on (Luma3DS 13.0 or higher)
+5. Run Nimbus and select the **Pretendo** (= OpenPak) account, then sign in
+6. Enable the plugin: Rosalina menu → "Plugin Loader" → "Enabled"
+
+Steps 4 and 6 are only needed for the full patch set; once the six IPS patches are built and
+copied to `3ds/nimbus/update/`, Luma applies them at boot. Until then the account manager
+still runs and can carry an account — the game-facing pieces need the patches.
+
+## Usage (upstream Pretendo)
+
+1. Grab the latest app and IPS patches from the [upstream Releases](https://github.com/PretendoNetwork/nimbus/releases) page
 2. Extract to the root of your 3DS SD card
 3. Install the Nimbus homebrew using FBI (or FBI Reloaded) if using the CIA build
 4. Run the Nimbus homebrew and select either to use a Pretendo or Nintendo account
