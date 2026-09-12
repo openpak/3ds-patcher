@@ -48,7 +48,9 @@ RUN git clone --depth=1 --recursive https://gitlab.com/thepixellizeross/3gxtool 
 
 # CTRPluginFramework — the library the Nimbus plugin links against.
 # Full clone (not shallow): the build stamps itself with `git describe`.
+# Serial on purpose: its Makefile races the debug and release libs on
+# libcwav.a under -j.
 RUN git clone --recursive https://gitlab.com/thepixellizeross/ctrpluginframework /tmp/ctrpf \
  && sed -i "s/-Wall -Werror/-Wall/" /tmp/ctrpf/Library/Makefile \
- && make -C /tmp/ctrpf/Library install -j"$(nproc)" \
+ && make -C /tmp/ctrpf/Library install \
  && rm -rf /tmp/ctrpf
