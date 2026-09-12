@@ -112,4 +112,17 @@ start_replacements_addr equ 0x131088
 	nncs2_pretendo_name:
 		.asciiz "nncs2.app.openpak.org"
 
+	; the values the OpenPak replacements above resolve to. nncs1 lives on the
+	; production box with everything else; nncs2 answers from the status box,
+	; because the NAT-reply relay needs a second address (see nn-nncs). Same
+	; mapping nn-sssl-dns serves.
+	openpak_server_ip:
+		.asciiz "145.241.199.19"
+
+	openpak_nncs2_ip:
+		.asciiz "145.241.228.207"
+
+	openpak_suffix:
+		.asciiz ".openpak.org"
+
 .close

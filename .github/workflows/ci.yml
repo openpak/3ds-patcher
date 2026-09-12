@@ -1,0 +1,21 @@
+name: ci
+
+# Every push builds the app and plugin so a regression is caught before a tag.
+on:
+  push:
+  pull_request:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f docker/tools.Dockerfile -t builder .
+      - run: docker run --rm -v "$PWD":/src builder bash docker/build-inner.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: nn-nimbus
+          path: |
+            app/nimbus.cia
+            app/nimbus.3dsx
+            plugin/plugin.3gx

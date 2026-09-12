@@ -3,8 +3,27 @@
 Fork of Pretendo's nimbus. The Luma patches swap `nintendo.net` / `nintendowifi.net` for
 the same-length `openpak.org` in the HTTP, socket (NNCS), account, friends and Miiverse
 modules, and the SSL patch disables root-CA verification, so the console reaches OpenPak's
-servers for those names. Build needs devkitARM, libctru, CTRPluginFramework, 3gxtool, armips,
-makerom, bannertool and flips (see below); not yet built or run on hardware.
+servers for those names.
+
+## Building (OpenPak)
+
+One command, no local toolchain:
+
+    docker/build.sh
+
+That builds the toolchain image once (`docker/tools.Dockerfile` — devkitARM, libctru,
+CTRPluginFramework, 3gxtool, armips, makerom, bannertool, tex3ds, flips), then builds the
+plugin (`nimbus.3gx`), the app (`nimbus.cia`, `nimbus.3dsx`) and — when the six sysmodule
+dumps are in place — the IPS patches, into `out/`.
+
+The patches cannot be built from source alone: they are IPS diffs against decrypted
+sysmodule code that only a real console can provide. Dump the six modules per
+`DECOMPRESSING.md` and copy each dump to `patches/<module>/code.bin` (act, friends, http,
+socket, ssl, miiverse), then re-run `docker/build.sh`. The dumps are gitignored — decrypted
+Nintendo code never leaves your console.
+
+Releases: push an `openpak-v*` tag and CI attaches `nimbus.cia`, `nimbus.3dsx` and
+`nimbus.3gx` to a GitHub release. Patch builds stay local, for the same reason.
 
 ---
 

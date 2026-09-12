@@ -1,4 +1,15 @@
-.PHONY: all clean
+.PHONY: all clean patches plugin app
+
+# build one piece on its own; the patches need the sysmodule dumps (see
+# DECOMPRESSING.md), the plugin and the app do not
+patches:
+	@$(MAKE) -C patches
+
+plugin:
+	@$(MAKE) -C plugin
+
+app:
+	@$(MAKE) -C app
 
 OUT_FOLDER      := out
 

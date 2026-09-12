@@ -1,0 +1,35 @@
+name: release
+
+# Tag openpak-v* and this builds the app and plugin in the toolchain image and
+# attaches them to a GitHub Release. The six IPS patches are not built here:
+# they need decrypted sysmodule code that only a real 3DS can provide
+# (DECOMPRESSING.md), so patch builds stay local — see docker/build.sh.
+on:
+  push:
+    tags: ['openpak-v*']
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -f docker/tools.Dockerfile -t builder .
+      - run: docker run --rm -v "$PWD":/src builder bash docker/build-inner.sh
+      - name: Collect release files
+        run: |
+          mkdir release
+          cp app/nimbus.cia app/nimbus.3dsx plugin/plugin.3gx release/
+          mv release/plugin.3gx release/nimbus.3gx
+      - if: startsWith(github.ref, 'refs/tags/openpak-v')
+        run: gh release create "${GITHUB_REF_NAME}" release/* --repo "${GITHUB_REPOSITORY}" --title "${GITHUB_REF_NAME}" --generate-notes
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - if: "!startsWith(github.ref, 'refs/tags/openpak-v')"
+        uses: actions/upload-artifact@v4
+        with:
+          name: nn-nimbus
+          path: release/
