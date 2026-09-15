@@ -37,7 +37,7 @@ been done.)
 
 ## Usage (OpenPak)
 
-1. Grab `nimbus.cia` (or `nimbus.3dsx`) and `nimbus.3gx` from the [Releases](../../releases) page
+1. Grab `nimbus.cia` (or `nimbus.3dsx`) and `nimbus.3gx` from the `releases` (see the git tags) page
 2. Copy `3ds/nimbus/` from the release (or your own `out/combined_out/`) to the root of your 3DS SD card
 3. Install `nimbus.cia` with FBI (or FBI Reloaded)
 4. Reboot holding SELECT and ensure "Enable loading external FIRMs and modules" and "Enable game patching" are both on (Luma3DS 13.0 or higher)
