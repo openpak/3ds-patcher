@@ -22,7 +22,7 @@ sysmodule code that only a real console can provide. Dump the six modules per
 socket, ssl, miiverse), then re-run `docker/build.sh`. The dumps are gitignored — decrypted
 Nintendo code never leaves your console.
 
-Releases: push an `openpak-v*` tag and CI attaches `nimbus.cia`, `nimbus.3dsx` and
+Releases: push a `vX.Y.Z` tag and CI attaches `nimbus.cia`, `nimbus.3dsx` and
 `nimbus.3gx` to a GitHub release. Patch builds stay local, for the same reason.
 
 ---

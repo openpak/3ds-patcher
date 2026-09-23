@@ -1,9 +1,8 @@
 name: ci
 
-# Every push builds the app and plugin so a regression is caught before a tag.
+# Builds the app and plugin on a manual run (release.yml builds them for a vX.Y.Z tag).
 on:
-  push:
-  pull_request:
+  workflow_dispatch:
 
 jobs:
   build:
