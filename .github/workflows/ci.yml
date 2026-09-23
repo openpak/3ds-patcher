@@ -19,3 +19,4 @@ jobs:
             app/nimbus.cia
             app/nimbus.3dsx
             plugin/plugin.3gx
+          retention-days: 3

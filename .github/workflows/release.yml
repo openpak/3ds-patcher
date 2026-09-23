@@ -33,3 +33,4 @@ jobs:
         with:
           name: nn-nimbus
           path: release/
+          retention-days: 3
