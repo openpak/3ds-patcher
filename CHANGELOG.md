@@ -3,6 +3,21 @@
 Generated from git history on 2026-09-15. `git log` stays the source
 of truth; this file is the readable summary.
 
+## Unreleased
+
+- ci: release builds on `v*.*.*` tags only (was `openpak-v*`), CI on manual dispatch,
+  artifacts kept 3 days [ef8dcd6, c4977bd]; docs commits
+
+## openpak-v1 — 2026-09-12
+
+- openpak.org names (same length as pretendo.cc) in every patch [c9c7f25]
+- Socket patch resolves `*.openpak.org` and the NNCS names to the OpenPak box on the console;
+  resolver symbols defined (`openpak_server_ip` was undefined), inline length walk instead of
+  strlen [c349410, 270eff0, 7128b35]
+- Build via docker (`docker/build.sh`), CTRPF built serially (Makefile races under -j), CI and
+  `openpak-v*` releases [7128b35, 270a960, c94dca6]
+- README: OpenPak usage — the Pretendo button is the OpenPak path; DS3-1 steps [d85bc0d]
+
 ## v2.1.1 — 2026-06-09
 
 
