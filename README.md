@@ -1,4 +1,4 @@
-# OpenPak nn-nimbus — 3DS patches and account manager for OpenPak
+# OpenPak 3DS Patcher — 3DS patches and account manager for OpenPak
 
 Fork of Pretendo's nimbus. The Luma patches swap `nintendo.net` / `nintendowifi.net` for
 the same-length `openpak.org` in the HTTP, socket (NNCS), account, friends and Miiverse
