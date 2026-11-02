@@ -33,7 +33,6 @@ The IPS patches need the six decrypted sysmodule dumps; see [deploy](docs/deploy
 ## Docs
 
 - [Protocol](docs/protocol.md)
-- [Evidence](docs/evidence.md)
 - [Deploy](docs/deploy.md)
 - [Notes](docs/notes.md)
 - [Upstream README](docs/upstream.md)
