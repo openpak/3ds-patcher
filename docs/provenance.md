@@ -1,3 +1,9 @@
+# Provenance
+
+Based on [Pretendo Nimbus](https://github.com/PretendoNetwork/nimbus) (GPL-3.0 as upstream). License as upstream; see LICENSE. The upstream README follows verbatim.
+
+---
+
 # Nimbus
 ## Pretendo account manager for the 3DS
 

@@ -28,3 +28,9 @@ Releases: push a `vX.Y.Z` tag and CI attaches `nimbus.cia`, `nimbus.3dsx` and
 4. Reboot holding SELECT and ensure "Enable loading external FIRMs and modules" and "Enable game patching" are both on (Luma3DS 13.0 or higher)
 5. Run Nimbus and select the **Pretendo** (= OpenPak) account, then sign in
 6. Enable the plugin: Rosalina menu → "Plugin Loader" → "Enabled"
+
+## Patch status
+
+Steps 4 and 6 are only needed for the full patch set. Once the six IPS patches are built and
+copied to `3ds/nimbus/update/`, Luma applies them at boot. Without them the account manager
+still runs and can carry an account, but the game-facing pieces need the patches.
