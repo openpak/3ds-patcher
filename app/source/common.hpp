@@ -33,6 +33,20 @@ enum class LumaConfigBitIndex : s32 {
 
 const int targetLumaVersion = 13;
 const int GetSystemInfoCFW = 0x10000; // the type for Luma3DS' GetSystemInfo hook that returns CFW info
+// openpak.org's dark theme, as in the Switch Patcher.
+#define COLOR_PAPER   C2D_Color32(0x10, 0x11, 0x14, 255)
+#define COLOR_RAISED  C2D_Color32(0x1c, 0x1e, 0x24, 255)
+#define COLOR_SELECT  C2D_Color32(0x23, 0x2a, 0x3d, 255)
+#define COLOR_LINE    C2D_Color32(0x26, 0x28, 0x2e, 255)
+#define COLOR_INK     C2D_Color32(0xe9, 0xea, 0xee, 255)
+#define COLOR_STRONG  C2D_Color32(0xff, 0xff, 0xff, 255)
+#define COLOR_MUTED   C2D_Color32(0x8a, 0x8e, 0x99, 255)
+#define COLOR_ACCENT  C2D_Color32(0x2f, 0x56, 0xd0, 255)
+#define COLOR_OK      C2D_Color32(0x3d, 0xc0, 0x7c, 255)
+#define COLOR_OK_BG   C2D_Color32(0x14, 0x2c, 0x20, 255)
+#define COLOR_WARN    C2D_Color32(0xe0, 0xa8, 0x50, 255)
+#define COLOR_WARN_BG C2D_Color32(0x2c, 0x24, 0x14, 255)
+
 const u32 defaultColor = C2D_Color32(255, 255, 255, 0xFF);
 
 enum class PromptResult {
@@ -43,7 +57,8 @@ enum class PromptResult {
 
 enum class PromptStatus {
 	Unknown,
-    PNIDUnlink
+    PNIDUnlink,
+    Reboot
 };
 
 struct PromptState {
@@ -54,19 +69,7 @@ struct PromptState {
 };
 
 struct MainStruct {
-	C2D_Sprite debug_button;
-	C2D_Sprite debug_header;
-	C2D_Sprite go_back;
-	C2D_Sprite header;
-	C2D_Sprite nintendo_unloaded_deselected;
-	C2D_Sprite nintendo_unloaded_selected;
-	C2D_Sprite nintendo_loaded_selected;
-	C2D_Sprite nintendo_loaded_deselected;
-	C2D_Sprite pretendo_unloaded_deselected;
-	C2D_Sprite pretendo_unloaded_selected;
-	C2D_Sprite pretendo_loaded_selected;
-	C2D_Sprite pretendo_loaded_deselected;
-	C2D_Sprite top;
+	C2D_Sprite top;   // the OpenPak mark
 
 	u32 screen = 0;
 	u32 state = 0;
@@ -82,6 +85,7 @@ struct MainStruct {
 	bool updateChecked = false;
 
 	char errorString[256];
+	std::string status;     // an informational line on the status screen
 
 	// startup checking variables
 	s64 firmwareVersion;
@@ -132,7 +136,8 @@ void GetStringSize(float size, float *width, float *height, const char *text);
 float GetStringHeight(float size, const char *text);
 void DrawString(float size, u32 color, std::string text, int flags);
 
-void DrawControls();
+void DrawText(float x, float y, float size, u32 color, int flags, const std::string &text);
+void DrawBox(float x, float y, float w, float h, float z, u32 fill, u32 border, float bw);
 
 // this is kinda from citro2d
 CFG_Region GetSystemRegion();

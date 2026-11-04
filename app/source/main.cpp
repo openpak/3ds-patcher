@@ -15,35 +15,16 @@ static void sceneInit(void)
 {
 	C2D_SpriteSheet spriteSheet = C2D_SpriteSheetLoadFromMem(sheet_t3x, sheet_t3x_size);
 	C2D_SpriteFromSheet(&mainStruct.top, spriteSheet, sheet_top_idx);
-	C2D_SpriteFromSheet(&mainStruct.go_back, spriteSheet, sheet_go_back_idx);
-	C2D_SpriteFromSheet(&mainStruct.header, spriteSheet, sheet_header_idx);
-	C2D_SpriteFromSheet(&mainStruct.nintendo_unloaded_deselected, spriteSheet, sheet_nintendo_unloaded_deselected_idx);
-	C2D_SpriteFromSheet(&mainStruct.nintendo_unloaded_selected, spriteSheet, sheet_nintendo_unloaded_selected_idx);
-	C2D_SpriteFromSheet(&mainStruct.nintendo_loaded_selected, spriteSheet, sheet_nintendo_loaded_selected_idx);
-	C2D_SpriteFromSheet(&mainStruct.nintendo_loaded_deselected, spriteSheet, sheet_nintendo_loaded_deselected_idx);
-	C2D_SpriteFromSheet(&mainStruct.pretendo_unloaded_deselected, spriteSheet, sheet_pretendo_unloaded_deselected_idx);
-	C2D_SpriteFromSheet(&mainStruct.pretendo_unloaded_selected, spriteSheet, sheet_pretendo_unloaded_selected_idx);
-	C2D_SpriteFromSheet(&mainStruct.pretendo_loaded_selected, spriteSheet, sheet_pretendo_loaded_selected_idx);
-	C2D_SpriteFromSheet(&mainStruct.pretendo_loaded_deselected, spriteSheet, sheet_pretendo_loaded_deselected_idx);
-	C2D_SpriteSetCenter(&mainStruct.top, 0.49f, 0.49f);
-	C2D_SpriteSetPos(&mainStruct.top, 400/2, 240/2);
-	C2D_SpriteSetPos(&mainStruct.go_back, 0, 214);
-	C2D_SpriteSetPos(&mainStruct.header, 95, 14);
-	C2D_SpriteSetPos(&mainStruct.pretendo_loaded_selected, 49, 59);
-	C2D_SpriteSetPos(&mainStruct.pretendo_unloaded_selected, 49, 59);
-	C2D_SpriteSetPos(&mainStruct.pretendo_unloaded_deselected, 49, 59);
-	C2D_SpriteSetPos(&mainStruct.pretendo_loaded_deselected, 49, 59);
-	C2D_SpriteSetPos(&mainStruct.nintendo_loaded_selected, 165, 59);
-	C2D_SpriteSetPos(&mainStruct.nintendo_unloaded_selected, 165, 59);
-	C2D_SpriteSetPos(&mainStruct.nintendo_unloaded_deselected, 165, 59);
-	C2D_SpriteSetPos(&mainStruct.nintendo_loaded_deselected, 165, 59);
-	
+	C2D_SpriteSetCenter(&mainStruct.top, 0.0f, 0.0f);
+	C2D_SpriteSetPos(&mainStruct.top, 12, 12);
+
 	textBuf = C2D_TextBufNew(4096); // initialize the text buffer with a max glyph count of 4096
 }
 
 int main()
 {
 	// Initialize the libs
+	romfsInit();   // the plugin and certificate travel inside the app
 	nsInit();
 	ndmuInit();
 	frdInit(false);
@@ -88,8 +69,8 @@ int main()
 		// Render the scene
 		C3D_FrameBegin(C3D_FRAME_SYNCDRAW);
 		
-		C2D_TargetClear(top_screen, C2D_Color32(21, 22, 28, 0xFF));
-		C2D_TargetClear(bottom_screen, C2D_Color32(21, 22, 28, 0xFF));
+		C2D_TargetClear(top_screen, COLOR_PAPER);
+		C2D_TargetClear(bottom_screen, COLOR_PAPER);
 		
 		// TODO: change firstRunOfState into stateRunIndex, incrementing every time the state is run
 		if (mainStruct.lastState != mainStruct.state) mainStruct.firstRunOfState = true;
@@ -121,6 +102,7 @@ int main()
 	}
 
 	nsExit();
+	romfsExit();
 
 	return 0;
 }

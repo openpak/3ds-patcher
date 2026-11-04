@@ -52,20 +52,17 @@ void DrawString(float size, u32 color, std::string text, int flags) {
 	C2D_DrawText(&c2d_text, C2D_WithColor | C2D_WordWrap | flags, x, y, 0.5f, size, heightScale, color, screenWidthBottom - x * 2);
 }
 
-void DrawControls() {
+void DrawText(float x, float y, float size, u32 color, int flags, const std::string &text) {
 	C2D_Text c2d_text;
-	const char* text = "A: Select\nY: Launch plugin\nX: Unlink PNID";
-	float size = 0.5f;
-	int offset = 6;
-	int bottomOffset = (240 + 2)- offset; // 3ds vertical resolution - offset, but add 2 to the vertical resolution to account for the vertical padding?
-
 	C2D_TextBufClear(textBuf);
-
-	C2D_TextFontParse(&c2d_text, font, textBuf, text);
+	C2D_TextFontParse(&c2d_text, font, textBuf, text.c_str());
 	C2D_TextOptimize(&c2d_text);
+	C2D_DrawText(&c2d_text, C2D_WithColor | flags, x, y, 0.5f, size, size, color, 380.0f - x);
+}
 
-	C2D_DrawText(&c2d_text, C2D_WithColor | C2D_AlignLeft, offset, bottomOffset - GetStringHeight(size, text), 0.5f, size, size, C2D_Color32(255, 255, 255, 0xFF));
-
+void DrawBox(float x, float y, float w, float h, float z, u32 fill, u32 border, float bw) {
+	C2D_DrawRectSolid(x, y, z, w, h, border);
+	C2D_DrawRectSolid(x + bw, y + bw, z, w - 2 * bw, h - 2 * bw, fill);
 }
 
 // this is kinda from citro2d
@@ -83,7 +80,7 @@ CFG_Region GetSystemRegion() {
 void DrawScamWarning() {
 	C2D_Text c2d_text1;
 	C2D_Text c2d_text2;
-	std::string line1 = std::format("{} is free and open-source. If you paid to have it installed,", APP_TITLE);
+	std::string line1 = "OpenPak is free and open-source. If you paid to have it installed,";
 	std::string line2 = "you have been scammed. Demand your money back";
 	float size = 0.5f;
 	int offset = 6;
@@ -106,7 +103,7 @@ void DrawScamWarning() {
 // code thats mostly by me again 
 void DrawVersionString() {
 	C2D_Text c2d_text;
-	std::string text = std::format("{} {}.{}.{}", APP_TITLE, VERSION_MAJOR, VERSION_MINOR, VERSION_MICRO);
+	std::string text = std::format("v{}.{}.{}", VERSION_MAJOR, VERSION_MINOR, VERSION_MICRO);
 	float size = 0.5f;
 	int offset = 6;
 	int horizontalOffset = 400 - offset;

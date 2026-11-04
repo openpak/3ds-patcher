@@ -3,6 +3,20 @@
 Generated from git history on 2026-09-15. `git log` stays the source
 of truth; this file is the readable summary.
 
+## v2.2.0 — 2026-11-04
+
+- The app is **OpenPak 3DS Patcher**: one status screen with the same flow and wording as the Switch Patcher
+  (OPENPAK / NINTENDO pill, Nintendo and OpenPak cards with `Active`, `A Select`, `B Exit`,
+  `OpenPak selected. Reboot to apply?` with `A Reboot now` / `B Later`, `Failed: <reason>`). The Pretendo
+  artwork and wording are gone.
+- Backup and rollback: files OpenPak replaces are kept as `.original`/`.absent` in `/3ds/openpak/system`,
+  selecting Nintendo restores them exactly, and a file changed by someone else is left alone.
+- The plugin and Juxt certificate (and the game patches, when built) travel inside the CIA and are applied on
+  first start, so a CIA install is a complete update. The old `/3ds/nimbus/update` folder still works.
+- Selecting the network already in use re-applies it; the unconditional "Failed to apply Azahar configuration"
+  message on success is fixed.
+- `tests/run.sh` checks the backup and rollback rules on the host.
+
 ## v2.1.2 — 2026-11-04
 
 - ci: runner image pinned, checkout@v5

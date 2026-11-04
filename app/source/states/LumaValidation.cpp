@@ -34,7 +34,7 @@ bool LumaValidation::checkIfLumaOptionsEnabled(MainStruct *mainStruct, C3D_Rende
 
     // if the major version of luma3ds is under the targetLumaVersion (defined earlier in the file), send an error
     if (std::get<0>(mainStruct->lumaVersion) < targetLumaVersion) {
-        DrawString(0.5f, defaultColor, std::format("Your Luma3DS version is out of date, it should be Luma3DS {} or newer for {} to function. Press A to exit.", targetLumaVersion, APP_TITLE), 0);
+        DrawString(0.5f, defaultColor, std::format("Your Luma3DS version is out of date, it should be Luma3DS {} or newer for {} to function. A: Exit.", targetLumaVersion, APP_TITLE), 0);
         
         // if A is pressed, return true to exit
         if (kDown & KEY_A) return true;
@@ -47,7 +47,7 @@ bool LumaValidation::checkIfLumaOptionsEnabled(MainStruct *mainStruct, C3D_Rende
         }
         else {
             DrawString(0.5f, defaultColor, std::format("Enable external FIRMs and modules: {}\nEnable game patching: {}\n\nFor {} to work, both of these Luma3DS options should be ENABLED. To open Luma3DS settings, hold SELECT while booting your system.\n\n\
-If you are sure both options are enabled and the options shown don't match your Luma3DS settings, please open a support thread on our forum with an image of the more information screen attached.\nPress A to exit, or hold B for more information.", mainStruct->externalFirmsAndModulesEnabled, mainStruct->gamePatchingEnabled, APP_TITLE), 0);
+If you are sure both options are enabled and the options shown don't match your Luma3DS settings, please contact OpenPak support at openpak.org with a picture of the more information screen.\n\nA: Exit    Hold B: More information", mainStruct->externalFirmsAndModulesEnabled, mainStruct->gamePatchingEnabled, APP_TITLE), 0);
         }
 
         // if A is pressed, return true to exit, else if X and Y is pressed

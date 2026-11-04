@@ -31,9 +31,9 @@ include $(DEVKITARM)/3ds_rules
 #     - icon.png
 #     - <libctru folder>/default_icon.png
 #---------------------------------------------------------------------------------
-APP_TITLE       := 	Nimbus
-APP_DESCRIPTION := 	Nimbus
-APP_AUTHOR	:=	Zaksabeast, shutterbug2000
+APP_TITLE       := 	OpenPak 3DS Patcher
+APP_DESCRIPTION := 	Switch this 3DS between Nintendo and OpenPak
+APP_AUTHOR	:=	OpenPak
 TARGET		:=	nimbus
 BUILD		:=	build
 SOURCES		:=	source source/states source/sysmodules
@@ -52,8 +52,8 @@ BNR_AUDIO := meta/audio.wav
 VERSION_HEADER = version.hpp
 
 VERSION_MAJOR := 2
-VERSION_MINOR := 1
-VERSION_MICRO := 1
+VERSION_MINOR := 2
+VERSION_MICRO := 0
 
 #GFXBUILD	:=	$(ROMFS)/gfx
 

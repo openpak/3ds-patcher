@@ -17,10 +17,6 @@ echo "== plugin (nimbus.3gx) =="
 make -C plugin clean >/dev/null
 make -C plugin
 
-echo "== app (nimbus.3dsx, nimbus.cia) =="
-make -C app clean >/dev/null
-make -C app
-
 # The six dumps the patches need, and the module each one patches.
 DUMPS=(
     patches/act/code.bin
@@ -45,6 +41,28 @@ else
     echo "   real 3DS can provide. Dump the six modules (see DECOMPRESSING.md), copy"
     echo "   each one over the path listed above, and re-run docker/build.sh."
 fi
+
+echo "== files carried inside the app (romfs:/openpak) =="
+rm -rf app/romfs/openpak
+mkdir -p app/romfs/openpak
+cp plugin/plugin.3gx app/romfs/openpak/nimbus.3gx
+cp patches/miiverse/juxt-prod.pem app/romfs/openpak/
+# The game patches travel inside the app too when the dumps were there to build them.
+romfs_emit() { # module dir, then every title id it patches
+    local d=$1; shift
+    [ -f "patches/$d/out/code.ips" ] || return 0
+    for t in "$@"; do cp "patches/$d/out/code.ips" "app/romfs/openpak/$t.ips"; done
+}
+romfs_emit act      0004013000003802
+romfs_emit friends  0004013000003202
+romfs_emit http     0004013000002902
+romfs_emit socket   0004013000002E02
+romfs_emit ssl      0004013000002F02
+romfs_emit miiverse 000400300000BC02 000400300000BD02 000400300000BE02
+
+echo "== app (nimbus.3dsx, nimbus.cia) =="
+make -C app clean >/dev/null
+make -C app
 
 echo "== assembling out/ =="
 rm -rf out

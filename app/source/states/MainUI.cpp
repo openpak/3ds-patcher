@@ -7,6 +7,7 @@
 #include "../sysmodules/acta.hpp"
 #include "../sysmodules/httpc.hpp"
 #include "../plgldr.h"
+#include "../Backup.hpp"
 
 constexpr Result ResultFPDLocalAccountNotExists = 0xC880C4ED; // FPD::LocalAccountNotExists
 const char *NIMBUS_PLUGIN = "/luma/plugins/nimbus.3gx";
@@ -127,7 +128,7 @@ Result MainUI::handleAzahar(u8 friend_account_id) {
 
     Result res = httpcInit(0x1000);
     if (friend_account_id == 2) {
-        // Register Pretendo replacement URLs
+        // Register OpenPak replacement URLs
         if (R_SUCCEEDED(res)) {
             for (const auto& pattern : patterns) {
                 res = HTTPC_Azahar_RegisterURLReplacement(pattern.c_str(), replacement.c_str(), pattern.size(), replacement.size());
@@ -149,7 +150,7 @@ Result MainUI::handleAzahar(u8 friend_account_id) {
             }
         }
     } else {
-        // Unregister Pretendo replacement URLs
+        // Unregister OpenPak replacement URLs
         for (const auto& pattern : patterns) {
             res = HTTPC_Azahar_UnregisterURLReplacement(pattern.c_str(), pattern.size());
             if (R_FAILED(res)) {
@@ -176,12 +177,12 @@ void MainUI::migrateAccount(MainStruct *mainStruct) {
     Result rc = 0;
     u32 pretendo_account_index = 0;
     // Logs won't override any previous errors
-    handleResult(ACT_GetAccountIndexOfFriendAccountId(&pretendo_account_index, 2), mainStruct, "Get PNID for migration");
+    handleResult(ACT_GetAccountIndexOfFriendAccountId(&pretendo_account_index, 2), mainStruct, "Get account for migration");
     if (pretendo_account_index != 0) {
         bool is_commited = false;
-        handleResult(ACT_GetAccountInfo(&is_commited, sizeof(bool), pretendo_account_index, INFO_TYPE_IS_COMMITTED), mainStruct, "Get PNID commit status");
+        handleResult(ACT_GetAccountInfo(&is_commited, sizeof(bool), pretendo_account_index, INFO_TYPE_IS_COMMITTED), mainStruct, "Get account commit status");
         if (!is_commited) {
-            handleResult(ACTA_CommitConsoleAccount(pretendo_account_index), mainStruct, "Commit PNID");
+            handleResult(ACTA_CommitConsoleAccount(pretendo_account_index), mainStruct, "Commit account");
         }
     }
 }
@@ -190,7 +191,7 @@ void MainUI::unlinkPNID(MainStruct *mainStruct) {
     if (R_FAILED(retPNID = ACTA_UnbindServerAccount(pnidAccountSlot, true))) {
         LOG_NIMBUS_ERROR(mainStruct, std::format("ACTA_UnbindServerAccount failed with error code {}!", retPNID).c_str());
 	} else {
-		LOG_NIMBUS_ERROR(mainStruct, "Successfully unlinked PNID!");
+		LOG_NIMBUS_ERROR(mainStruct, "OpenPak account unlinked.");
 	}
 }
 
@@ -230,7 +231,7 @@ void MainUI::launchPlugin(MainStruct *mainStruct) {
     }
 
     if (version < SYSTEM_VERSION(1, 0, 2)) {
-        LOG_NIMBUS_ERROR(mainStruct, "Unsupported plg:ldr version, please update Luma3DS");
+        LOG_NIMBUS_ERROR(mainStruct, "Unsupported plugin loader version: update Luma3DS");
         plgLdrExit();
         return;
     }
@@ -252,8 +253,6 @@ void MainUI::launchPlugin(MainStruct *mainStruct) {
     handleResult(PLGLDR__SetPluginLoadParameters(&plgparam), mainStruct, "Set plugin load params");
     plgLdrExit();
 
-    // Logs won't override any previous errors
-    LOG_NIMBUS_ERROR(mainStruct, "Nimbus plugin ready! Launch a game from the Home Menu");
     return;
 }
 
@@ -278,6 +277,11 @@ void MainUI::updatePrompt(MainStruct* mainStruct, u32 kDown)
     }
 }
 
+// Prompt hints follow the Switch Patcher footer: A / B with a caption.
+static const char *promptHint(PromptStatus s) {
+    return s == PromptStatus::Reboot ? "A: Reboot now    B: Later" : "A: Yes    B: Cancel";
+}
+
 void MainUI::drawPrompt(MainStruct* mainStruct)
 {
     if (!mainStruct->prompt.active) return;
@@ -285,259 +289,222 @@ void MainUI::drawPrompt(MainStruct* mainStruct)
     const float screenW = 320.0f;
     const float screenH = 240.0f;
 
-    // Dim background
-    C2D_DrawRectSolid(0, 0, 0.1f, screenW, screenH, C2D_Color32(0, 0, 0, 140));
+    C2D_DrawRectSolid(0, 0, 0.1f, screenW, screenH, C2D_Color32(0, 0, 0, 160));
 
     const float boxW = 280.0f, boxH = 110.0f;
     const float boxX = (screenW - boxW) / 2.0f;
     const float boxY = (screenH - boxH) / 2.0f;
 
-    const u32 fill   = C2D_Color32(25, 25, 25, 240);
-    const u32 border = C2D_Color32(255, 255, 255, 255);
-    const u32 white  = C2D_Color32(255, 255, 255, 255);
+    DrawBox(boxX, boxY, boxW, boxH, 0.2f, COLOR_RAISED, COLOR_WARN, 2);
 
-    // Box + border
-    C2D_DrawRectSolid(boxX, boxY, 0.2f, boxW, boxH, fill);
-    C2D_DrawRectSolid(boxX, boxY,               0.3f, boxW, 2, border);
-    C2D_DrawRectSolid(boxX, boxY + boxH - 2.0f, 0.3f, boxW, 2, border);
-    C2D_DrawRectSolid(boxX, boxY,               0.3f, 2, boxH, border);
-    C2D_DrawRectSolid(boxX + boxW - 2.0f, boxY, 0.3f, 2, boxH, border);
-
-    // Parse both strings in one buffer
-    C2D_Text msgText, hintText;
+    C2D_Text msgText;
     C2D_TextBufClear(textBuf);
-
     C2D_TextFontParse(&msgText, font, textBuf, mainStruct->prompt.message.c_str());
     C2D_TextOptimize(&msgText);
+    C2D_DrawText(&msgText, C2D_WithColor | C2D_WordWrap, boxX + 12.0f, boxY + 12.0f, 0.4f,
+                 0.55f, 0.55f, COLOR_INK, boxW - 24.0f);
 
-    C2D_TextFontParse(&hintText, font, textBuf, "A: Yes    B: Cancel");
-    C2D_TextOptimize(&hintText);
+    DrawText(screenW / 2.0f, boxY + boxH - 24.0f, 0.5f, COLOR_MUTED, C2D_AlignCenter, promptHint(mainStruct->prompt.status));
+}
 
-    // Draw (z <= 1.0!!)
-    C2D_DrawText(&msgText,
-                 C2D_WithColor | C2D_WordWrap,
-                 boxX + 10.0f, boxY + 10.0f, 0.4f,
-                 0.55f, 0.55f, white,
-                 boxW - 20.0f);
+// Card rectangles on the bottom screen: Nintendo on the left, OpenPak on the right.
+static constexpr float CARD_Y = 44, CARD_W = 128, CARD_H = 104;
+static constexpr float CARD_X[2] = {24, 168};
 
-    C2D_DrawText(&hintText,
-                 C2D_WithColor | C2D_AlignCenter,
-                 screenW / 2.0f, boxY + boxH - 18.0f, 0.4f,
-                 0.5f, 0.5f, white);
+static void drawCard(MainStruct *m, NascEnvironment env, const char *label) {
+    int idx = env == NascEnvironment::NASC_ENV_Prod ? 0 : 1;
+    bool selected = m->buttonSelected == env;
+    bool active = m->currentAccount == env;
+    DrawBox(CARD_X[idx], CARD_Y, CARD_W, CARD_H, 0.3f, selected ? COLOR_SELECT : COLOR_RAISED,
+            selected ? COLOR_ACCENT : COLOR_LINE, selected ? 3 : 1);
+    DrawText(CARD_X[idx] + CARD_W / 2, CARD_Y + 30, 0.8f, selected ? COLOR_STRONG : COLOR_INK, C2D_AlignCenter, label);
+    if (active)
+        DrawText(CARD_X[idx] + CARD_W / 2, CARD_Y + 66, 0.5f,
+                 env == NascEnvironment::NASC_ENV_Test ? COLOR_OK : COLOR_WARN, C2D_AlignCenter, "Active");
+}
+
+static void drawPill(bool openpak) {
+    const char *label = openpak ? "OPENPAK" : "NINTENDO";
+    u32 fg = openpak ? COLOR_OK : COLOR_WARN;
+    float w = 92, x = 400 - 12 - w, y = 40;
+    DrawBox(x, y, w, 22, 0.3f, openpak ? COLOR_OK_BG : COLOR_WARN_BG, fg, 1);
+    DrawText(x + w / 2, y + 3, 0.5f, fg, C2D_AlignCenter, label);
 }
 
 bool MainUI::drawUI(MainStruct *mainStruct, C3D_RenderTarget* top_screen, C3D_RenderTarget* bottom_screen, u32 kDown, u32 kHeld, touchPosition touch)
 {
-    // Check if Nimbus has been updated
+    // First run: the files inside the app become the managed copies. Nothing live changes unless
+    // this console is on OpenPak, where a newer set is applied (and the reboot offered).
     if (!mainStruct->updateChecked) {
         mainStruct->updateChecked = true;
-        if (auto* updateCheck = std::fopen(NIMBUS_UPDATE_PATH "/update.txt", "rb")) {
-            std::fclose(updateCheck);
-
-            migrateAccount(mainStruct);
-
-            // If the migration has failed, don't do the update. In such case users need to contact support
-            if (mainStruct->errorString[0] == 0) {
-                mkdir("/luma", 0777);
-                mkdir("/luma/sysmodules", 0777);
-                std::remove("/luma/sysmodules/0004013000003202.ips");
-                std::rename(NIMBUS_UPDATE_PATH "/0004013000003202.ips", "/luma/sysmodules/0004013000003202.ips");
-                std::remove("/luma/sysmodules/0004013000003802.ips");
-                std::rename(NIMBUS_UPDATE_PATH "/0004013000003802.ips", "/luma/sysmodules/0004013000003802.ips");
-                std::remove("/luma/sysmodules/0004013000002902.ips");
-                std::rename(NIMBUS_UPDATE_PATH "/0004013000002902.ips", "/luma/sysmodules/0004013000002902.ips");
-                std::remove("/luma/sysmodules/0004013000002E02.ips");
-                std::rename(NIMBUS_UPDATE_PATH "/0004013000002E02.ips", "/luma/sysmodules/0004013000002E02.ips");
-                std::remove("/luma/sysmodules/0004013000002F02.ips");
-                std::rename(NIMBUS_UPDATE_PATH "/0004013000002F02.ips", "/luma/sysmodules/0004013000002F02.ips");
-
-                mkdir("/luma/titles", 0777);
-                mkdir("/luma/titles/000400300000BC02", 0777);
-                std::remove("/luma/titles/000400300000BC02/code.ips");
-                std::rename(NIMBUS_UPDATE_PATH "/000400300000BC02.ips", "/luma/titles/000400300000BC02/code.ips");
-
-                mkdir("/luma/titles/000400300000BD02", 0777);
-                std::remove("/luma/titles/000400300000BD02/code.ips");
-                std::rename(NIMBUS_UPDATE_PATH "/000400300000BD02.ips", "/luma/titles/000400300000BD02/code.ips");
-
-                mkdir("/luma/titles/000400300000BE02", 0777);
-                std::remove("/luma/titles/000400300000BE02/code.ips");
-                std::rename(NIMBUS_UPDATE_PATH "/000400300000BE02.ips", "/luma/titles/000400300000BE02/code.ips");
-
-                mkdir("/luma/plugins", 0777);
-                std::remove("/luma/plugins/nimbus.3gx");
-                std::rename(NIMBUS_UPDATE_PATH "/nimbus.3gx",           "/luma/plugins/nimbus.3gx");
-
-                std::remove("/3ds/juxt-prod.pem");
-                std::rename(NIMBUS_UPDATE_PATH "/juxt-prod.pem",        "/3ds/juxt-prod.pem");
-
-                std::remove(NIMBUS_UPDATE_PATH "/update.txt");
-            }
-
-            // Logs won't override any previous errors
-            LOG_NIMBUS_ERROR(mainStruct, "Nimbus has been updated!");
-
-            aptSetHomeAllowed(false);
-            mainStruct->needsReboot = true;
-            mainStruct->buttonWasPressed = false;
-            return false;
+        char err[160] = "";
+        int changed = Backup::stage(err, sizeof(err));
+        bool onOpenPak = mainStruct->currentAccount == NascEnvironment::NASC_ENV_Test;
+        if (changed > 0) migrateAccount(mainStruct);
+        if (changed < 0 || mainStruct->errorString[0] != 0) {
+            if (changed < 0) LOGF_NIMBUS_ERROR(mainStruct, "%s", err);
+        } else if (onOpenPak && (changed > 0 || Backup::live() < Backup::managed())) {
+            if (Backup::install(err, sizeof(err)))
+                openPrompt(mainStruct, "OpenPak setup updated. Reboot to apply?", PromptStatus::Reboot);
+            else
+                LOGF_NIMBUS_ERROR(mainStruct, "%s", err);
+        } else if (changed > 0) {
+            mainStruct->status = "OpenPak files updated. They install when you select OpenPak.";
         }
+        std::remove(NIMBUS_UPDATE_PATH "/update.txt");
     }
 
-    // if start is pressed, exit to hbl/the home menu depending on if the app was launched from cia or 3dsx
+    // Exit to HBL / the HOME Menu depending on whether the app was launched from the CIA or the 3dsx.
     if (kDown & KEY_START) return true;
 
     updatePrompt(mainStruct, kDown);
 
     if (mainStruct->prompt.active) {
         if (mainStruct->prompt.result == PromptResult::Yes) {
-            switch (mainStruct->prompt.status) {
-                case PromptStatus::PNIDUnlink:
-                    unlinkPNID(mainStruct);
-                    break;
-                default:
-                    LOG_NIMBUS_ERROR(mainStruct, "Unknown prompt called.");
-                    break;
-            }
+            PromptStatus st = mainStruct->prompt.status;
             mainStruct->prompt.result = PromptResult::None;
             mainStruct->prompt.active = false;
+            if (st == PromptStatus::Reboot) {
+                mainStruct->needsReboot = true;
+                return true;   // main() reboots the system after shutting the services down
+            }
+            if (st == PromptStatus::PNIDUnlink) unlinkPNID(mainStruct);
             return false;
         }
         if (mainStruct->prompt.result == PromptResult::No) {
             mainStruct->prompt.result = PromptResult::None;
             mainStruct->prompt.active = false;
+            if (mainStruct->prompt.status == PromptStatus::Reboot) mainStruct->status.clear();
             return false;
         }
     }
 
+    bool onOpenPak = mainStruct->currentAccount == NascEnvironment::NASC_ENV_Test;
+
+    // Top screen: the status screen.
     C2D_SceneBegin(top_screen);
-    DrawScamWarning();
     DrawVersionString();
     C2D_DrawSprite(&mainStruct->top);
+    DrawText(86, 14, 0.8f, COLOR_STRONG, C2D_AlignLeft, "OpenPak 3DS Patcher");
+    DrawText(88, 40, 0.5f, COLOR_MUTED, C2D_AlignLeft, "Network selector");
+    drawPill(onOpenPak);
+    C2D_DrawRectSolid(12, 76, 0.3f, 376, 1, COLOR_LINE);
 
+    float y = 90;
     if (mainStruct->errorString[0] != 0) {
-        DrawString(0.5f, 0xFFFFFFFF, std::format("{}{}", mainStruct->errorString, mainStruct->needsReboot ? "\n\nPress START to reboot the system" : ""), 0);
+        DrawText(12, y, 0.5f, COLOR_WARN, C2D_AlignLeft | C2D_WordWrap, std::format("Failed: {}", mainStruct->errorString));
+        y += 56;
+    } else if (!mainStruct->status.empty()) {
+        DrawText(12, y, 0.5f, COLOR_INK, C2D_AlignLeft | C2D_WordWrap, mainStruct->status);
+        y += 36;
+    } else {
+        DrawText(12, y, 0.5f, COLOR_MUTED, C2D_AlignLeft, "Changes apply at boot.");
+        y += 22;
     }
+    int managed = Backup::managed(), live = Backup::live();
+    if (managed > 0)
+        DrawText(12, y, 0.45f, COLOR_MUTED, C2D_AlignLeft, std::format("{} of {} OpenPak files installed", live, managed));
+    else
+        DrawText(12, y, 0.45f, COLOR_MUTED, C2D_AlignLeft, "No OpenPak files staged yet.");
+    DrawScamWarning();
 
+    // Bottom screen: Nintendo / OpenPak.
     C2D_SceneBegin(bottom_screen);
-    DrawControls();
-
-    if (mainStruct->buttonSelected == NascEnvironment::NASC_ENV_Prod) {
-        if (mainStruct->currentAccount == NascEnvironment::NASC_ENV_Prod) {
-            C2D_DrawSprite(&mainStruct->nintendo_loaded_selected);
-            C2D_DrawSprite(&mainStruct->pretendo_unloaded_deselected);
-        }
-        else {
-            C2D_DrawSprite(&mainStruct->nintendo_unloaded_selected);
-            C2D_DrawSprite(&mainStruct->pretendo_loaded_deselected);
-        }
-    }
-    else if (mainStruct->buttonSelected == NascEnvironment::NASC_ENV_Test) {
-        if (mainStruct->currentAccount == NascEnvironment::NASC_ENV_Test) {
-            C2D_DrawSprite(&mainStruct->nintendo_unloaded_deselected);
-            C2D_DrawSprite(&mainStruct->pretendo_loaded_selected);
-        }
-        else {
-            C2D_DrawSprite(&mainStruct->nintendo_loaded_deselected);
-            C2D_DrawSprite(&mainStruct->pretendo_unloaded_selected);
-        }
-    }
-    C2D_DrawSprite(&mainStruct->header);
+    DrawText(160, 14, 0.5f, COLOR_MUTED, C2D_AlignCenter, "Select a network");
+    drawCard(mainStruct, NascEnvironment::NASC_ENV_Prod, "Nintendo");
+    drawCard(mainStruct, NascEnvironment::NASC_ENV_Test, "OpenPak");
+    DrawText(160, 168, 0.42f, COLOR_MUTED, C2D_AlignCenter, "Y: Launch plugin    X: Unlink OpenPak account");
+    DrawText(160, 196, 0.5f, COLOR_INK, C2D_AlignCenter, "A: Select    B: Exit");
     drawPrompt(mainStruct);
 
-    // Only allow user interaction when the system doesn't need a restart
-    if (!mainStruct->needsReboot && !mainStruct->prompt.active) {
-        // handle touch input
-        if (kDown & KEY_TOUCH) {
-            if ((touch.px >= 165 && touch.px <= 165 + 104) && (touch.py >= 59 && touch.py <= 59 + 113)) {
-                mainStruct->buttonSelected = NascEnvironment::NASC_ENV_Prod;
+    // Only allow user interaction when no prompt is open.
+    if (mainStruct->prompt.active) return false;
+
+    if (kDown & KEY_B) return true;
+
+    if (kDown & KEY_TOUCH) {
+        for (int idx = 0; idx < 2; idx++) {
+            if (touch.px >= CARD_X[idx] && touch.px <= CARD_X[idx] + CARD_W && touch.py >= CARD_Y && touch.py <= CARD_Y + CARD_H) {
+                mainStruct->buttonSelected = idx == 0 ? NascEnvironment::NASC_ENV_Prod : NascEnvironment::NASC_ENV_Test;
                 mainStruct->buttonWasPressed = true;
             }
-            else if ((touch.px >= 49 && touch.px <= 49 + 104) && (touch.py >= 59 && touch.py <= 59 + 113)) {
-                mainStruct->buttonSelected = NascEnvironment::NASC_ENV_Test;
-                mainStruct->buttonWasPressed = true;
-            }
         }
-        else if (kDown & KEY_LEFT || kDown & KEY_RIGHT) {
-            mainStruct->buttonSelected = mainStruct->buttonSelected == NascEnvironment::NASC_ENV_Test ? NascEnvironment::NASC_ENV_Prod : NascEnvironment::NASC_ENV_Test;
+    }
+    else if (kDown & (KEY_LEFT | KEY_RIGHT)) {
+        mainStruct->buttonSelected = mainStruct->buttonSelected == NascEnvironment::NASC_ENV_Test ? NascEnvironment::NASC_ENV_Prod : NascEnvironment::NASC_ENV_Test;
+    }
+
+    if (kDown & KEY_A) mainStruct->buttonWasPressed = true;
+
+    if (kDown & KEY_X) {
+        mainStruct->errorString[0] = 0;
+        mainStruct->status.clear();
+        retPNID = ACT_GetAccountIndexOfFriendAccountId(&pnidAccountSlot, 2);
+        if (R_FAILED(retPNID)) {
+            LOGF_NIMBUS_ERROR(mainStruct, "ACT_GetAccountIndexOfFriendAccountId failed with error code %08lx", retPNID);
+        } else if (pnidAccountSlot == 0) {
+            mainStruct->status = "No OpenPak account is linked on this console.";
+        } else if (R_FAILED(retPNID = ACT_GetAccountInfo(pnid, sizeof(pnid), pnidAccountSlot, INFO_TYPE_ACCOUNT_ID))) {
+            LOGF_NIMBUS_ERROR(mainStruct, "ACT_GetAccountInfo failed with error code %08lx", retPNID);
+        } else if (pnid[0] != '\0') {
+            openPrompt(mainStruct, std::format("Unlink the OpenPak account {} from this console? It can be linked again at any time.", pnid), PromptStatus::PNIDUnlink);
+        } else {
+            mainStruct->status = "No OpenPak account is linked on this console.";
         }
+    }
 
-        if (mainStruct->prompt.active) {
-            return false;
-        }
-
-        if (kDown & KEY_A) {
-            mainStruct->buttonWasPressed = true;
-        }
-
-        if (kDown & KEY_X) {
-            // We need to confirm we actually even have a linked PNID.
-	        if (R_SUCCEEDED(retPNID)) {
-		        if (R_FAILED(retPNID = ACT_GetAccountIndexOfFriendAccountId(&pnidAccountSlot, 2))) {
-			        LOG_NIMBUS_ERROR(mainStruct, std::format("ACT_GetAccountIndexOfFriendAccountId failed with error code {}!", retPNID).c_str());
-		        }
-	        }
-
-            if (pnidAccountSlot == 0) {
-                LOG_NIMBUS_ERROR(mainStruct, "There is no PNID linked on this console!");
-            }
-
-	        if (R_SUCCEEDED(retPNID)) {
-		        if (R_FAILED(retPNID = ACT_GetAccountInfo(pnid, sizeof(pnid), pnidAccountSlot, INFO_TYPE_ACCOUNT_ID))) {
-			        LOG_NIMBUS_ERROR(mainStruct, std::format("ACT_GetAccountInfo failed with error code {}!", retPNID).c_str());
-		        }
-	        }
-
-            if (R_SUCCEEDED(retPNID)) {
-		        if (pnid[0] != '\0') {
-			        openPrompt(mainStruct, std::format("Are you sure you would like to unlink your PNID {}? Your PNID can be relinked at any time.", pnid), PromptStatus::PNIDUnlink);
-		        } else {
-			        LOG_NIMBUS_ERROR(mainStruct, "There is no PNID linked on this console!");
-		        }
-	        }
-        }
-
-        if (kDown & KEY_Y) {
-            launchPlugin(mainStruct);
-            mainStruct->buttonWasPressed = false;
-            return false;
-        }
+    if (kDown & KEY_Y) {
+        mainStruct->errorString[0] = 0;
+        mainStruct->status.clear();
+        launchPlugin(mainStruct);
+        if (mainStruct->errorString[0] == 0) mainStruct->status = "Plugin ready. Launch a game from the HOME Menu.";
+        mainStruct->buttonWasPressed = false;
+        return false;
     }
 
     if (mainStruct->buttonWasPressed) {
-        // Clear any previous logs
+        mainStruct->buttonWasPressed = false;
         mainStruct->errorString[0] = 0;
+        mainStruct->status.clear();
 
-        // If the chosen account is the one we are already logged into, exit without rebooting
-        if (mainStruct->currentAccount == mainStruct->buttonSelected) return true;
+        bool wantOpenPak = mainStruct->buttonSelected == NascEnvironment::NASC_ENV_Test;
+        bool again = mainStruct->currentAccount == mainStruct->buttonSelected;
+        const char *name = wantOpenPak ? "OpenPak" : "Nintendo";
+        char err[160] = "";
 
-        u8 accountId = (u8)mainStruct->buttonSelected + 1; // by default set accountId to nasc environment + 1
-
-        Result rc = unloadAccount(mainStruct);
-        if (R_SUCCEEDED(rc)) {
-            rc = switchAccounts(mainStruct, accountId);
-            if (rc == ResultFPDLocalAccountNotExists && accountId == 2) {
-                // Clear the error to allow createAccount to override it
-                memset(mainStruct->errorString, 0, 256);
-                rc = createAccount(mainStruct, accountId, NascEnvironment::NASC_ENV_Test);
+        Result rc = 0;
+        // Selecting the network already in use re-applies the files rather than refusing.
+        if (!again) {
+            u8 accountId = (u8)mainStruct->buttonSelected + 1;
+            rc = unloadAccount(mainStruct);
+            if (R_SUCCEEDED(rc)) {
+                rc = switchAccounts(mainStruct, accountId);
+                if (rc == ResultFPDLocalAccountNotExists && accountId == 2) {
+                    memset(mainStruct->errorString, 0, 256);
+                    rc = createAccount(mainStruct, accountId, NascEnvironment::NASC_ENV_Test);
+                }
             }
+            if (R_SUCCEEDED(rc)) {
+                rc = handleAzahar(accountId);
+                if (R_FAILED(rc)) LOGF_NIMBUS_ERROR(mainStruct, "Failed to apply Azahar configuration: %08lx", rc);
+            }
+            if (R_FAILED(rc)) {
+                // The friends service is half switched: only a reboot makes it consistent.
+                aptSetHomeAllowed(false);
+                mainStruct->needsReboot = true;
+                openPrompt(mainStruct, "The switch did not finish. Reboot to recover?", PromptStatus::Reboot);
+                return false;
+            }
+            mainStruct->currentAccount = mainStruct->buttonSelected;
         }
 
-        if (R_SUCCEEDED(rc)) {
-            rc = handleAzahar(accountId);
-            LOG_NIMBUS_ERROR(mainStruct, std::format("Failed to apply Azahar configuration: {}", rc).c_str());
-        }
-
-        if (R_FAILED(rc)) {
-            aptSetHomeAllowed(false);
-            mainStruct->needsReboot = true;
-            mainStruct->buttonWasPressed = false;
+        bool ok = wantOpenPak ? Backup::install(err, sizeof(err)) : Backup::remove(err, sizeof(err));
+        if (!ok) {
+            LOGF_NIMBUS_ERROR(mainStruct, "%s", err);
             return false;
         }
-
-        mainStruct->needsReboot = true;
-
-        return true;
+        openPrompt(mainStruct, again ? std::format("{} setup updated. Reboot to apply?", name)
+                                     : std::format("{} selected. Reboot to apply?", name), PromptStatus::Reboot);
     }
 
     return false;
