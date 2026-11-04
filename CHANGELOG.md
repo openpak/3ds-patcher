@@ -3,7 +3,7 @@
 Generated from git history on 2026-09-15. `git log` stays the source
 of truth; this file is the readable summary.
 
-## v1.0.1 — 2026-11-04
+## v2.1.2 — 2026-11-04
 
 - ci: runner image pinned, checkout@v5
 - The per-console patchers renamed; docs point at docs.openpak.org; docs trimmed to README + protocol + deploy
@@ -73,11 +73,11 @@ of truth; this file is the readable summary.
 
 
 
-## v1.0.1 — 2022-01-29
+## v2.1.2 — 2022-01-29
 
 
 
-## v1.0.1 — 2022-01-29
+## v2.1.2 — 2022-01-29
 
 - Merge pull request #4 from shutterbug2000/alt-nasc-account-patches [4bcb6ab]
 - Remove the env vars for act and nasc urls, we don't need them [8c8139d]
