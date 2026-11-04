@@ -3,7 +3,10 @@
 Generated from git history on 2026-09-15. `git log` stays the source
 of truth; this file is the readable summary.
 
-## Unreleased
+## v1.0.1 — 2026-11-04
+
+- ci: runner image pinned, checkout@v5
+- The per-console patchers renamed; docs point at docs.openpak.org; docs trimmed to README + protocol + deploy
 
 - ci: release builds on `v*.*.*` tags only (was `openpak-v*`), CI on manual dispatch,
   artifacts kept 3 days [ef8dcd6, c4977bd]; docs commits
